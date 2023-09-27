@@ -2,7 +2,7 @@
     "deno.enable": true,
     "deno.lint": true,
     "deno.unstable": true,
-    "deno.enablePaths": ["src/"],
+    "deno.enablePaths": ["src/", "test/"],
     "editor.tabSize": 2,
     "deno.suggest.imports.hosts": {
         "https://deno.land": true

@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write --unstable
 
-import { WasmModule } from "../wasm.ts";
+import { WasmBuffer, WasmModule } from "../wasm.ts";
 import { Command } from "https://deno.land/x/cliffy@v1.0.0-rc.3/command/mod.ts";
 
 const main = async () => {
@@ -11,7 +11,9 @@ const main = async () => {
     .parse(Deno.args);
 
   const code = await Deno.readFile(args[0]);
-  const wasmModule = new WasmModule(code);
+  const wasmBuffer = new WasmBuffer(code);
+  const wasmModule = new WasmModule();
+  wasmModule.load(wasmBuffer);
   console.log(JSON.stringify(wasmModule, null, "  "));
 };
 
