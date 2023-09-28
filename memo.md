@@ -21,3 +21,11 @@ wasm
     ├── section2
     └── ...
 ```
+
+```go
+type Section struct {
+    id uint8
+    size uint32
+    data []byte
+}
+```
