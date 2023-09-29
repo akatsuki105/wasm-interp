@@ -78,3 +78,21 @@ type Local struct {
     valType ValueType
 }
 ```
+
+```go
+type ExportSection struct {
+    id uint8 // 7
+    size uint32
+    data []Export
+}
+
+type Export struct {
+    name []uint8
+    desc ExportDesc
+}
+
+type ExportDesc struct {
+    tag uint8
+    idx uint32
+}
+```

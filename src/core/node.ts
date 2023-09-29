@@ -15,6 +15,11 @@ const Op = {
   LocalGet: 0x20,
   LocalSet: 0x21,
   I32Const: 0x41,
+  I32Eqz: 0x45,
+  I32LtS: 0x48,
+  I32GeS: 0x4e,
+  I32Add: 0x6a,
+  I32RemS: 0x6f,
   End: 0x0b,
 } as const;
 type Op = typeof Op[keyof typeof Op];
@@ -57,6 +62,9 @@ abstract class SectionNode {
       }
       case 3: {
         return new FunctionSectionNode();
+      }
+      case 7: {
+        return new ExportSectionNode();
       }
       case 10: {
         return new CodeSectionNode();
@@ -213,6 +221,21 @@ export class InstrNode {
       case Op.LocalSet: {
         return new LocalSetInstrNode(opcode);
       }
+      case Op.I32Add: {
+        return new I32AddInstrNode(opcode);
+      }
+      case Op.I32Eqz: {
+        return new I32EqzInstrNode(opcode);
+      }
+      case Op.I32LtS: {
+        return new I32LtSInstrNode(opcode);
+      }
+      case Op.I32GeS: {
+        return new I32LtSInstrNode(opcode);
+      }
+      case Op.I32RemS: {
+        return new I32RemSInstrNode(opcode);
+      }
       default: {
         return null;
       }
@@ -250,4 +273,47 @@ export class LocalSetInstrNode extends InstrNode {
   load(buffer: Buffer) {
     this.localIdx = buffer.readU32();
   }
+}
+
+export class ExportSectionNode extends SectionNode {
+  exports: ExportNode[] = [];
+
+  load(buffer: Buffer): void {
+    this.exports = buffer.readVec<ExportNode>((): ExportNode => {
+      const exportNode = new ExportNode();
+      exportNode.load(buffer);
+      return exportNode;
+    });
+  }
+}
+
+export class ExportNode {
+  name!: string;
+  exportDesc!: ExportDescNode;
+  load(buffer: Buffer) {
+    this.name = buffer.readName();
+    this.exportDesc = new ExportDescNode();
+    this.exportDesc.load(buffer);
+  }
+}
+
+export class ExportDescNode {
+  tag!: number;
+  index!: number;
+
+  load(buffer: Buffer) {
+    this.tag = buffer.readByte();
+    this.index = buffer.readU32();
+  }
+}
+
+export class I32AddInstrNode extends InstrNode {
+}
+export class I32EqzInstrNode extends InstrNode {
+}
+export class I32LtSInstrNode extends InstrNode {
+}
+export class I32GeSInstrNode extends InstrNode {
+}
+export class I32RemSInstrNode extends InstrNode {
 }
