@@ -57,3 +57,24 @@ type FunctionSection struct {
 
 type TypeIdx uint32 // TypeSection.data のインデックス
 ```
+
+```go
+type CodeSection struct {
+    id uint8 // 1
+    size uint32
+    data []Code
+}
+
+type Code struct {
+    size uint32
+    function struct {
+        locals []Local
+        expr Expr
+    }
+}
+
+type Local struct {
+    num uint32
+    valType ValueType
+}
+```
