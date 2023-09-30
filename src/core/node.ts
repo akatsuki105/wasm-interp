@@ -164,6 +164,8 @@ export class ResultTypeNode {
 }
 
 export class FunctionSectionNode extends SectionNode {
+  static ID = 3;
+
   // typeidx は先ほど の Type セクションの何番目に位置するかを表す数値
   typeIdxs: TypeIdx[] = [];
 
@@ -173,10 +175,18 @@ export class FunctionSectionNode extends SectionNode {
     });
   }
 
-  store(buffer: Buffer) {}
+  store(buffer: Buffer) {
+    buffer.writeByte(FunctionSectionNode.ID);
+    const sectionsBuffer = new Buffer({ buffer: new ArrayBuffer(1024) });
+    sectionsBuffer.writeVec(this.typeIdxs, (typeIdx: TypeIdx) => {
+      sectionsBuffer.writeU32(typeIdx);
+    });
+    buffer.append(sectionsBuffer);
+  }
 }
 
 export class CodeSectionNode extends SectionNode {
+  static ID = 10;
   codes: CodeNode[] = [];
 
   load(buffer: Buffer) {
@@ -187,7 +197,14 @@ export class CodeSectionNode extends SectionNode {
     });
   }
 
-  store(buffer: Buffer) {}
+  store(buffer: Buffer) {
+    buffer.writeByte(CodeSectionNode.ID);
+    const sectionsBuffer = new Buffer({ buffer: new ArrayBuffer(1024) });
+    sectionsBuffer.writeVec(this.codes, (code: CodeNode) => {
+      code.store(sectionsBuffer);
+    });
+    buffer.append(sectionsBuffer);
+  }
 }
 
 export class CodeNode {
@@ -199,6 +216,12 @@ export class CodeNode {
     const funcBuffer = buffer.readBuffer(this.size);
     this.func = new FuncNode();
     this.func.load(funcBuffer);
+  }
+
+  store(buffer: Buffer) {
+    const funcBuffer = new Buffer({ buffer: new ArrayBuffer(1024) });
+    this.func?.store(funcBuffer);
+    buffer.append(funcBuffer);
   }
 }
 
@@ -216,6 +239,13 @@ export class FuncNode {
     this.expr = new ExprNode();
     this.expr.load(buffer);
   }
+
+  store(buffer: Buffer) {
+    buffer.writeVec<LocalNode>(this.locals, (local: LocalNode) => {
+      local.store(buffer);
+    });
+    this.expr?.store(buffer);
+  }
 }
 
 export class LocalNode {
@@ -226,11 +256,16 @@ export class LocalNode {
     this.num = buffer.readU32();
     this.valType = buffer.readByte() as ValType;
   }
+
+  store(buffer: Buffer) {
+    buffer.writeU32(this.num);
+    buffer.writeByte(this.valType);
+  }
 }
 
 export class ExprNode {
   instrs: InstrNode[] = [];
-  endOp!: Op;
+  endOp!: Op; // storeで必要
 
   load(buffer: Buffer) {
     while (true) {
@@ -251,6 +286,13 @@ export class ExprNode {
         break;
       }
     }
+  }
+
+  store(buffer: Buffer) {
+    for (const instr of this.instrs) {
+      instr.store(buffer);
+    }
+    buffer.writeByte(this.endOp);
   }
 }
 
@@ -314,6 +356,10 @@ export class InstrNode {
   load(buffer: Buffer) {
     // nop
   }
+
+  store(buffer: Buffer) {
+    buffer.writeByte(this.opcode);
+  }
 }
 
 export class I32ConstInstrNode extends InstrNode {
@@ -321,6 +367,11 @@ export class I32ConstInstrNode extends InstrNode {
 
   load(buffer: Buffer) {
     this.num = buffer.readI32();
+  }
+
+  store(buffer: Buffer) {
+    super.store(buffer);
+    buffer.writeI32(this.num);
   }
 }
 
@@ -341,6 +392,7 @@ export class LocalSetInstrNode extends InstrNode {
 }
 
 export class ExportSectionNode extends SectionNode {
+  static ID = 7;
   exports: ExportNode[] = [];
 
   load(buffer: Buffer): void {
@@ -351,7 +403,14 @@ export class ExportSectionNode extends SectionNode {
     });
   }
 
-  store(buffer: Buffer) {}
+  store(buffer: Buffer) {
+    buffer.writeByte(ExportSectionNode.ID);
+    const sectionsBuffer = new Buffer({ buffer: new ArrayBuffer(1024) });
+    sectionsBuffer.writeVec(this.exports, (exportNode: ExportNode) => {
+      exportNode.store(sectionsBuffer);
+    });
+    buffer.append(sectionsBuffer);
+  }
 }
 
 export class ExportNode {
@@ -362,6 +421,11 @@ export class ExportNode {
     this.exportDesc = new ExportDescNode();
     this.exportDesc.load(buffer);
   }
+
+  store(buffer: Buffer) {
+    buffer.writeName(this.name);
+    this.exportDesc.store(buffer);
+  }
 }
 
 export class ExportDescNode {
@@ -371,6 +435,11 @@ export class ExportDescNode {
   load(buffer: Buffer) {
     this.tag = buffer.readByte();
     this.index = buffer.readU32();
+  }
+
+  store(buffer: Buffer) {
+    buffer.writeByte(this.tag);
+    buffer.writeU32(this.index);
   }
 }
 
