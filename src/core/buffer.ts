@@ -145,4 +145,31 @@ export class Buffer {
   writeI32(num: number) {
     this.writeS32(num);
   }
+
+  writeName(name: string) {
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(name);
+    this.writeU32(bytes.length);
+    this.writeBytes(bytes);
+  }
+
+  writeVec<T>(ts: T[], writeT: (t: T) => void) {
+    this.writeU32(ts.length);
+    for (const t of ts) {
+      writeT(t);
+    }
+  }
+
+  // その他
+
+  append(buffer: Buffer) {
+    this.writeU32(buffer.#cursor);
+    for (let i = 0; i < buffer.#cursor; i++) {
+      this.writeByte(buffer.peek(i));
+    }
+  }
+
+  peek(pos: number = 0): number {
+    return this.#view.getUint8(pos);
+  }
 }

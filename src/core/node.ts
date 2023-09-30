@@ -63,6 +63,10 @@ export class ModuleNode {
   store(buffer: Buffer) {
     if (this.magic) buffer.writeBytes(this.magic);
     if (this.version) buffer.writeBytes(this.version);
+
+    for (const section of this.sections) {
+      section.store(buffer);
+    }
   }
 }
 
@@ -92,9 +96,11 @@ abstract class SectionNode {
   }
 
   abstract load(buffer: Buffer): void;
+  abstract store(buffer: Buffer): void;
 }
 
 export class TypeSectionNode extends SectionNode {
+  static ID = 1;
   funcTypes: FuncTypeNode[] = [];
 
   load(buffer: Buffer) {
@@ -103,6 +109,15 @@ export class TypeSectionNode extends SectionNode {
       functype.load(buffer);
       return functype;
     });
+  }
+
+  store(buffer: Buffer) {
+    buffer.writeByte(TypeSectionNode.ID);
+    const sectionsBuffer = new Buffer({ buffer: new ArrayBuffer(1024) });
+    sectionsBuffer.writeVec(this.funcTypes, (functype: FuncTypeNode) => {
+      functype.store(sectionsBuffer);
+    });
+    buffer.append(sectionsBuffer); // append は #cursorつまりsizeを先頭に書き込む
   }
 }
 
@@ -124,6 +139,12 @@ export class FuncTypeNode {
     this.resultType = new ResultTypeNode();
     this.resultType.load(buffer);
   }
+
+  store(buffer: Buffer) {
+    buffer.writeByte(FuncTypeNode.TAG);
+    this.paramType.store(buffer);
+    this.resultType.store(buffer);
+  }
 }
 
 export class ResultTypeNode {
@@ -132,6 +153,12 @@ export class ResultTypeNode {
   load(buffer: Buffer) {
     this.valTypes = buffer.readVec<ValType>((): ValType => {
       return buffer.readByte() as ValType;
+    });
+  }
+
+  store(buffer: Buffer) {
+    buffer.writeVec(this.valTypes, (valType: ValType) => {
+      buffer.writeByte(valType);
     });
   }
 }
@@ -145,6 +172,8 @@ export class FunctionSectionNode extends SectionNode {
       return buffer.readU32();
     });
   }
+
+  store(buffer: Buffer) {}
 }
 
 export class CodeSectionNode extends SectionNode {
@@ -157,6 +186,8 @@ export class CodeSectionNode extends SectionNode {
       return code;
     });
   }
+
+  store(buffer: Buffer) {}
 }
 
 export class CodeNode {
@@ -319,6 +350,8 @@ export class ExportSectionNode extends SectionNode {
       return exportNode;
     });
   }
+
+  store(buffer: Buffer) {}
 }
 
 export class ExportNode {
