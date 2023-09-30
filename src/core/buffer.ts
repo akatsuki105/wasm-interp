@@ -6,9 +6,15 @@
 export class Buffer {
   #cursor = 0; // プライベートフィールド
   #buffer: ArrayBuffer;
+  #view: DataView;
 
   constructor({ buffer }: { buffer: ArrayBuffer }) {
     this.#buffer = buffer;
+    this.#view = new DataView(buffer);
+  }
+
+  get buffer(): ArrayBuffer {
+    return this.#buffer;
   }
 
   get byteLength(): number {
@@ -88,5 +94,16 @@ export class Buffer {
     const size = this.readU32();
     const bytes = this.readBytes(size);
     return new TextDecoder("utf-8").decode(bytes.buffer);
+  }
+
+  writeBytes(bytes: ArrayBuffer) {
+    const u8s = new Uint8Array(bytes);
+    for (const byte of u8s) {
+      this.writeByte(byte);
+    }
+  }
+
+  writeByte(byte: number) {
+    this.#view.setUint8(this.#cursor++, byte);
   }
 }
