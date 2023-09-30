@@ -1,4 +1,4 @@
-import { Buffer } from "./buffer.ts";
+import { Buffer } from './buffer.ts';
 
 type I32 = 0x7f;
 type I64 = 0x7e;
@@ -116,7 +116,7 @@ export class FuncTypeNode {
 
   load(buffer: Buffer) {
     if (buffer.readByte() !== FuncTypeNode.TAG) {
-      throw new Error("invalid functype");
+      throw new Error('invalid functype');
     }
 
     this.paramType = new ResultTypeNode();

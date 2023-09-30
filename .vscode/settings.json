@@ -2,6 +2,7 @@
     "deno.enable": true,
     "deno.lint": true,
     "deno.unstable": true,
+    "deno.config": "./deno.jsonc",
     "deno.enablePaths": ["src/", "test/"],
     "editor.tabSize": 2,
     "deno.suggest.imports.hosts": {

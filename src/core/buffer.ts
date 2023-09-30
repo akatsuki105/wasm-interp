@@ -93,8 +93,10 @@ export class Buffer {
   readName(): string {
     const size = this.readU32();
     const bytes = this.readBytes(size);
-    return new TextDecoder("utf-8").decode(bytes.buffer);
+    return new TextDecoder('utf-8').decode(bytes.buffer);
   }
+
+  // write
 
   writeBytes(bytes: ArrayBuffer) {
     const u8s = new Uint8Array(bytes);
@@ -105,5 +107,42 @@ export class Buffer {
 
   writeByte(byte: number) {
     this.#view.setUint8(this.#cursor++, byte);
+  }
+
+  writeU32(value: number) {
+    value |= 0;
+    const result = [];
+    while (true) {
+      const byte = value & 0b01111111;
+      value >>= 7;
+      if (value === 0 && (byte & 0b01000000) === 0) {
+        result.push(byte);
+        break;
+      }
+      result.push(byte | 0b10000000);
+    }
+    const u8a = new Uint8Array(result);
+    this.writeBytes(u8a.buffer);
+  }
+
+  writeS32(value: number) {
+    // https://en.wikipedia.org/wiki/LEB128#Encode_signed_32-bit_integer
+    value |= 0;
+    const result = [];
+    while (true) {
+      const byte = value & 0b01111111;
+      value >>= 7;
+      if ((value === 0 && (byte & 0b01000000) === 0) || (value === -1 && (byte & 0b01000000) !== 0)) {
+        result.push(byte);
+        break;
+      }
+      result.push(byte | 0b10000000);
+    }
+    const u8a = new Uint8Array(result);
+    this.writeBytes(u8a.buffer);
+  }
+
+  writeI32(num: number) {
+    this.writeS32(num);
   }
 }
