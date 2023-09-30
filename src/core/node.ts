@@ -12,10 +12,17 @@ type ValType = NumType | RefType;
 type TypeIdx = number;
 type S33 = number;
 type BlockType = 0x40 | ValType | S33;
+type LabelIdx = number;
+type FuncIdx = number;
 
 const Op = {
+  Block: 0x02,
+  Loop: 0x03,
   If: 0x04,
   Else: 0x05,
+  Br: 0x0c,
+  BrIf: 0x0d,
+  Call: 0x10,
   LocalGet: 0x20,
   LocalSet: 0x21,
   I32Const: 0x41,
@@ -216,8 +223,23 @@ export class InstrNode {
 
   static create(opcode: Op): InstrNode | null {
     switch (opcode) {
+      case Op.Block: {
+        return new BlockInstrNode(opcode);
+      }
+      case Op.Loop: {
+        return new LoopInstrNode(opcode);
+      }
       case Op.If: {
         return new IfInstrNode(opcode);
+      }
+      case Op.Call: {
+        return new CallInstrNode(opcode);
+      }
+      case Op.Br: {
+        return new BrInstrNode(opcode);
+      }
+      case Op.BrIf: {
+        return new BrIfInstrNode(opcode);
       }
       case Op.I32Const: {
         return new I32ConstInstrNode(opcode);
@@ -340,5 +362,47 @@ export class IfInstrNode extends InstrNode {
       this.elseInstrs = new ExprNode();
       this.elseInstrs.load(buffer);
     }
+  }
+}
+
+export class BlockInstrNode extends InstrNode {
+  blockType!: BlockType;
+  instrs!: ExprNode;
+
+  load(buffer: Buffer) {
+    this.blockType = buffer.readByte();
+    this.instrs = new ExprNode();
+    this.instrs.load(buffer);
+  }
+}
+
+export class LoopInstrNode extends InstrNode {
+  blockType!: BlockType;
+  instrs!: ExprNode;
+
+  load(buffer: Buffer) {
+    this.blockType = buffer.readByte();
+    this.instrs = new ExprNode();
+    this.instrs.load(buffer);
+  }
+}
+
+export class BrInstrNode extends InstrNode {
+  labelIdx!: LabelIdx;
+  load(buffer: Buffer) {
+    this.labelIdx = buffer.readU32();
+  }
+}
+export class BrIfInstrNode extends InstrNode {
+  labelIdx!: LabelIdx;
+  load(buffer: Buffer) {
+    this.labelIdx = buffer.readU32();
+  }
+}
+
+export class CallInstrNode extends InstrNode {
+  funcIdx!: FuncIdx;
+  load(buffer: Buffer) {
+    this.funcIdx = buffer.readU32();
   }
 }
