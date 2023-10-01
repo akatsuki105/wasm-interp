@@ -480,6 +480,16 @@ export class IfInstrNode extends InstrNode {
       this.elseInstrs.load(buffer);
     }
   }
+
+  store(buffer: Buffer): void {
+    super.store(buffer);
+    buffer.writeByte(this.blockType);
+    this.thenInstrs.endOp = (this.elseInstrs) ? Op.Else : Op.End;
+    this.thenInstrs.store(buffer);
+    if (this.elseInstrs) {
+      this.elseInstrs.store(buffer);
+    }
+  }
 }
 
 export class BlockInstrNode extends InstrNode {
@@ -490,6 +500,12 @@ export class BlockInstrNode extends InstrNode {
     this.blockType = buffer.readByte();
     this.instrs = new ExprNode();
     this.instrs.load(buffer);
+  }
+
+  store(buffer: Buffer): void {
+    super.store(buffer);
+    buffer.writeByte(this.blockType);
+    this.instrs.store(buffer);
   }
 }
 
@@ -502,6 +518,12 @@ export class LoopInstrNode extends InstrNode {
     this.instrs = new ExprNode();
     this.instrs.load(buffer);
   }
+
+  store(buffer: Buffer): void {
+    super.store(buffer);
+    buffer.writeByte(this.blockType);
+    this.instrs.store(buffer);
+  }
 }
 
 export class BrInstrNode extends InstrNode {
@@ -509,11 +531,22 @@ export class BrInstrNode extends InstrNode {
   load(buffer: Buffer) {
     this.labelIdx = buffer.readU32();
   }
+
+  store(buffer: Buffer): void {
+    super.store(buffer);
+    buffer.writeU32(this.labelIdx);
+  }
 }
+
 export class BrIfInstrNode extends InstrNode {
   labelIdx!: LabelIdx;
   load(buffer: Buffer) {
     this.labelIdx = buffer.readU32();
+  }
+
+  store(buffer: Buffer): void {
+    super.store(buffer);
+    buffer.writeU32(this.labelIdx);
   }
 }
 
@@ -521,5 +554,10 @@ export class CallInstrNode extends InstrNode {
   funcIdx!: FuncIdx;
   load(buffer: Buffer) {
     this.funcIdx = buffer.readU32();
+  }
+
+  store(buffer: Buffer): void {
+    super.store(buffer);
+    buffer.writeU32(this.funcIdx);
   }
 }
