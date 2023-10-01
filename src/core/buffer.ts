@@ -24,6 +24,10 @@ export class Buffer {
     return this.byteLength <= this.#cursor;
   }
 
+  get cursor(): number {
+    return this.#cursor;
+  }
+
   readBytes(size: number): Uint8Array {
     if (this.#buffer.byteLength < this.#cursor + size) {
       return new Uint8Array(0);
@@ -171,5 +175,28 @@ export class Buffer {
 
   peek(pos: number = 0): number {
     return this.#view.getUint8(pos);
+  }
+
+  protected setCursor(c: number) {
+    this.#cursor = c;
+  }
+}
+
+// cursor は常にスタックの先頭を指す
+export class StackBuffer extends Buffer {
+  readBytes(size: number): Uint8Array {
+    if (this.cursor - size < 0) {
+      return new Uint8Array(0);
+    }
+    const slice = this.buffer.slice(this.cursor - size, this.cursor);
+    this.setCursor(this.cursor - size);
+    return new Uint8Array(slice).reverse();
+  }
+
+  writeBytes(bytes: ArrayBuffer) {
+    const u8s = new Uint8Array(bytes).reverse();
+    for (const byte of u8s) {
+      this.writeByte(byte);
+    }
   }
 }
