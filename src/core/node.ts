@@ -1,4 +1,5 @@
 import { Buffer } from './buffer.ts';
+import { Instance } from './instance.ts';
 
 type I32 = 0x7f;
 type I64 = 0x7e;
@@ -67,6 +68,12 @@ export class ModuleNode {
     for (const section of this.sections) {
       section.store(buffer);
     }
+  }
+
+  instantiate(): Instance {
+    const inst = new Instance(this);
+    inst.compile();
+    return inst;
   }
 
   get typeSection(): TypeSectionNode {
@@ -456,7 +463,7 @@ export class ExportNode {
 }
 
 export class ExportDescNode {
-  tag!: number;
+  tag!: number; // 関数の場合は 0x00
   index!: number;
 
   load(buffer: Buffer) {
