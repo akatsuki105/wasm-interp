@@ -391,6 +391,7 @@ export class I32ConstInstrNode extends InstrNode {
   }
 }
 
+// ローカル変数領域からスタック上にデータを取ってくる命令
 export class LocalGetInstrNode extends InstrNode {
   localIdx!: number; // FuncNode.locals のidx
 
