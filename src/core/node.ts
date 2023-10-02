@@ -249,11 +249,11 @@ export class CodeNode {
 }
 
 export class FuncNode {
-  locals: LocalNode[] = [];
+  localses: LocalNode[] = [];
   expr?: ExprNode;
 
   load(buffer: Buffer) {
-    this.locals = buffer.readVec<LocalNode>((): LocalNode => {
+    this.localses = buffer.readVec<LocalNode>((): LocalNode => {
       const local = new LocalNode();
       local.load(buffer);
       return local;
@@ -264,7 +264,7 @@ export class FuncNode {
   }
 
   store(buffer: Buffer) {
-    buffer.writeVec<LocalNode>(this.locals, (local: LocalNode) => {
+    buffer.writeVec<LocalNode>(this.localses, (local: LocalNode) => {
       local.store(buffer);
     });
     this.expr?.store(buffer);
@@ -400,7 +400,7 @@ export class I32ConstInstrNode extends InstrNode {
 
 // ローカル変数領域からスタック上にデータを取ってくる命令
 export class LocalGetInstrNode extends InstrNode {
-  localIdx!: number; // FuncNode.locals のidx
+  localIdx!: number; // FuncNode.localses のidx
 
   load(buffer: Buffer) {
     this.localIdx = buffer.readU32();
@@ -413,7 +413,7 @@ export class LocalGetInstrNode extends InstrNode {
 }
 
 export class LocalSetInstrNode extends InstrNode {
-  localIdx!: number; // FuncNode.locals のidx
+  localIdx!: number; // FuncNode.localses のidx
 
   load(buffer: Buffer) {
     this.localIdx = buffer.readU32();
