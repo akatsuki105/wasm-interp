@@ -1,20 +1,6 @@
 import { Buffer } from './buffer.ts';
 import { Instance } from './instance.ts';
-
-type I32 = 0x7f;
-type I64 = 0x7e;
-type F32 = 0x7d;
-type F64 = 0x7c;
-type NumType = I32 | I64 | F32 | F64;
-type FuncRef = 0x70;
-type ExternRef = 0x6f;
-type RefType = FuncRef | ExternRef;
-type ValType = NumType | RefType;
-type TypeIdx = number;
-type S33 = number;
-type BlockType = 0x40 | ValType | S33;
-type LabelIdx = number;
-type FuncIdx = number;
+import { BlockType, FuncIdx, LabelIdx, TypeIdx, ValType } from './types.ts';
 
 const Op = {
   Block: 0x02,

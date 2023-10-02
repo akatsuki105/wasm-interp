@@ -1,5 +1,6 @@
 import { Buffer, StackBuffer } from './buffer.ts';
-import { CodeNode, FuncTypeNode, InstrNode, ModuleNode } from './node.ts';
+import { CodeNode, FuncTypeNode, I32AddInstrNode, I32ConstInstrNode, I32EqzInstrNode, I32GeSInstrNode, I32LtSInstrNode, I32RemSInstrNode, InstrNode, LocalGetInstrNode, LocalSetInstrNode, ModuleNode } from './node.ts';
+import { I32 } from './types.ts';
 
 export class Instance {
   #module: ModuleNode;
@@ -45,6 +46,26 @@ class LocalValue {
   constructor(type: number, value: number) {
     this.#type = type;
     this.value = value;
+  }
+
+  load(stack: Buffer) {
+    switch (this.#type) {
+      case I32:
+        this.value = stack.readI32();
+        break;
+      default:
+        throw new Error(`invalid local type: ${this.#type}`);
+    }
+  }
+
+  store(stack: Buffer) {
+    switch (this.#type) {
+      case I32:
+        stack.writeI32(this.value);
+        break;
+      default:
+        throw new Error(`invalid local type: ${this.#type}`);
+    }
   }
 }
 
@@ -137,7 +158,25 @@ class Instruction {
 
   // InstrNodeに対応するInstructionを返す
   static create(node: InstrNode, parent?: Instruction): Instruction {
-    return new Instruction();
+    if (node instanceof I32ConstInstrNode) {
+      return new I32ConstInstruction(node, parent);
+    } else if (node instanceof I32EqzInstrNode) {
+      return new I32EqzInstruction(node, parent);
+    } else if (node instanceof I32LtSInstrNode) {
+      return new I32LtSInstruction(node, parent);
+    } else if (node instanceof I32GeSInstrNode) {
+      return new I32GeSInstruction(node, parent);
+    } else if (node instanceof I32AddInstrNode) {
+      return new I32AddInstruction(node, parent);
+    } else if (node instanceof I32RemSInstrNode) {
+      return new I32RemSInstruction(node, parent);
+    } else if (node instanceof LocalGetInstrNode) {
+      return new LocalGetInstruction(node, parent);
+    } else if (node instanceof LocalSetInstrNode) {
+      return new LocalSetInstruction(node, parent);
+    } else {
+      throw new Error(`invalid node: ${node.constructor.name}`);
+    }
   }
 
   // Context を受け取って自身の命令を実行した後で、次に実行する命令を返す
@@ -169,5 +208,113 @@ class InstructionSeq extends Instruction {
 
   invoke(context: Context): Instruction | undefined {
     return this.top;
+  }
+}
+
+/*
+  local.get x
+  push locals[x] to stack
+*/
+class LocalGetInstruction extends Instruction {
+  #localIdx: number;
+
+  constructor(node: LocalGetInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#localIdx = node.localIdx;
+  }
+
+  invoke(context: Context): Instruction | undefined {
+    const local = context.locals[this.#localIdx];
+    local.store(context.stack);
+    return this.next;
+  }
+}
+
+/*
+  local.set x
+  pop val from stack, and set it into locals[x]
+*/
+class LocalSetInstruction extends Instruction {
+  #localIdx: number;
+  constructor(node: LocalSetInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#localIdx = node.localIdx;
+  }
+  invoke(context: Context): Instruction | undefined {
+    const local = context.locals[this.#localIdx];
+    local.load(context.stack);
+    return this.next;
+  }
+}
+
+class I32ConstInstruction extends Instruction {
+  #num: number;
+  constructor(node: I32ConstInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#num = node.num;
+  }
+  invoke(context: Context): Instruction | undefined {
+    context.stack.writeI32(this.#num);
+    return this.next;
+  }
+}
+
+class I32AddInstruction extends Instruction {
+  constructor(node: I32AddInstrNode, parent?: Instruction) {
+    super(parent);
+  }
+
+  invoke(context: Context): Instruction | undefined {
+    const rhs = context.stack.readI32();
+    const lhs = context.stack.readI32();
+    context.stack.writeI32(lhs + rhs);
+    return this.next;
+  }
+}
+
+class I32RemSInstruction extends Instruction {
+  constructor(node: I32RemSInstrNode, parent?: Instruction) {
+    super(parent);
+  }
+  invoke(context: Context): Instruction | undefined {
+    const rhs = context.stack.readS32();
+    const lhs = context.stack.readS32();
+    context.stack.writeS32(lhs % rhs);
+    return this.next;
+  }
+}
+
+class I32EqzInstruction extends Instruction {
+  constructor(node: I32EqzInstrNode, parent?: Instruction) {
+    super(parent);
+  }
+  invoke(context: Context): Instruction | undefined {
+    const num = context.stack.readS32();
+    context.stack.writeI32(num === 0 ? 1 : 0);
+    return this.next;
+  }
+}
+
+class I32LtSInstruction extends Instruction {
+  constructor(node: I32LtSInstrNode, parent?: Instruction) {
+    super(parent);
+  }
+  invoke(context: Context): Instruction | undefined {
+    const rhs = context.stack.readS32();
+    const lhs = context.stack.readS32();
+    context.stack.writeI32(lhs < rhs ? 1 : 0);
+    return this.next;
+  }
+}
+
+class I32GeSInstruction extends Instruction {
+  constructor(node: I32GeSInstrNode, parent?: Instruction) {
+    super(parent);
+  }
+  invoke(context: Context): Instruction | undefined {
+    const rhs = context.stack.readS32();
+    const lhs = context.stack.readS32();
+    context.stack.writeI32(lhs >= rhs ? 1 : 0);
+    return this.next;
   }
 }

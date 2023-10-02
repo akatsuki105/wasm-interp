@@ -12,7 +12,7 @@ const main = async () => {
   const wasmModule = new WebAssembly.Module(wasmCode);
   const wasmInstance = new WebAssembly.Instance(wasmModule);
   const add = wasmInstance.exports.add as (a: number, b: number) => number;
-  console.log(add(1, 2));
+  console.log(add(40, 2));
 };
 
 await main();
