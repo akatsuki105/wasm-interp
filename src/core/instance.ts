@@ -1,5 +1,5 @@
 import { Buffer, StackBuffer } from './buffer.ts';
-import { BlockInstrNode, BrIfInstrNode, BrInstrNode, CodeNode, FuncTypeNode, I32AddInstrNode, I32ConstInstrNode, I32EqzInstrNode, I32GeSInstrNode, I32GeUInstrNode, I32LtSInstrNode, I32RemSInstrNode, IfInstrNode, InstrNode, LocalGetInstrNode, LocalSetInstrNode, LoopInstrNode, ModuleNode } from './node.ts';
+import { BlockInstrNode, BrIfInstrNode, BrInstrNode, CallInstrNode, CodeNode, FuncTypeNode, I32AddInstrNode, I32ConstInstrNode, I32EqzInstrNode, I32GeSInstrNode, I32GeUInstrNode, I32LtSInstrNode, I32RemSInstrNode, IfInstrNode, InstrNode, LocalGetInstrNode, LocalSetInstrNode, LoopInstrNode, ModuleNode } from './node.ts';
 import { I32 } from './types.ts';
 
 export class Instance {
@@ -186,6 +186,8 @@ class Instruction {
       return new BrInstruction(node, parent);
     } else if (node instanceof BrIfInstrNode) {
       return new BrIfInstruction(node, parent);
+    } else if (node instanceof CallInstrNode) {
+      return new CallInstruction(node, parent);
     } else {
       throw new Error(`invalid node: ${node.constructor.name}`);
     }
@@ -446,5 +448,23 @@ class BrIfInstruction extends BrInstruction {
     }
 
     return super.invoke(context);
+  }
+}
+
+class CallInstruction extends Instruction {
+  #funcIdx: number;
+
+  constructor(node: CallInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#funcIdx = node.funcIdx;
+  }
+
+  invoke(context: Context): Instruction | undefined {
+    const func = context.functions[this.#funcIdx];
+    const result = func.invoke(context);
+    if (result) {
+      context.stack.writeI32(result); // TODO: type check
+    }
+    return this.next;
   }
 }
