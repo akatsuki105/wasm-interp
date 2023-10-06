@@ -1,4 +1,4 @@
-export type I32 = 0x7f;
+export type I32 = 0x7F;
 export const I32 = 0x7F;
 export type I64 = 0x7e;
 export type F32 = 0x7d;

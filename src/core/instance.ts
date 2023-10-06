@@ -1,5 +1,5 @@
 import { Buffer, StackBuffer } from './buffer.ts';
-import { CodeNode, FuncTypeNode, I32AddInstrNode, I32ConstInstrNode, I32EqzInstrNode, I32GeSInstrNode, I32LtSInstrNode, I32RemSInstrNode, InstrNode, LocalGetInstrNode, LocalSetInstrNode, ModuleNode } from './node.ts';
+import { BlockInstrNode, BrIfInstrNode, BrInstrNode, CodeNode, FuncTypeNode, I32AddInstrNode, I32ConstInstrNode, I32EqzInstrNode, I32GeSInstrNode, I32GeUInstrNode, I32LtSInstrNode, I32RemSInstrNode, IfInstrNode, InstrNode, LocalGetInstrNode, LocalSetInstrNode, LoopInstrNode, ModuleNode } from './node.ts';
 import { I32 } from './types.ts';
 
 export class Instance {
@@ -166,6 +166,8 @@ class Instruction {
       return new I32LtSInstruction(node, parent);
     } else if (node instanceof I32GeSInstrNode) {
       return new I32GeSInstruction(node, parent);
+    } else if (node instanceof I32GeUInstrNode) {
+      return new I32GeUInstruction(node, parent);
     } else if (node instanceof I32AddInstrNode) {
       return new I32AddInstruction(node, parent);
     } else if (node instanceof I32RemSInstrNode) {
@@ -174,6 +176,16 @@ class Instruction {
       return new LocalGetInstruction(node, parent);
     } else if (node instanceof LocalSetInstrNode) {
       return new LocalSetInstruction(node, parent);
+    } else if (node instanceof BlockInstrNode) {
+      return new BlockInstruction(node, parent);
+    } else if (node instanceof LoopInstrNode) {
+      return new LoopInstruction(node, parent);
+    } else if (node instanceof IfInstrNode) {
+      return new IfInstruction(node, parent);
+    } else if (node instanceof BrInstrNode) {
+      return new BrInstruction(node, parent);
+    } else if (node instanceof BrIfInstrNode) {
+      return new BrIfInstruction(node, parent);
     } else {
       throw new Error(`invalid node: ${node.constructor.name}`);
     }
@@ -316,5 +328,123 @@ class I32GeSInstruction extends Instruction {
     const lhs = context.stack.readS32();
     context.stack.writeI32(lhs >= rhs ? 1 : 0);
     return this.next;
+  }
+}
+
+class I32GeUInstruction extends Instruction {
+  constructor(node: I32GeUInstrNode, parent?: Instruction) {
+    super(parent);
+  }
+  invoke(context: Context): Instruction | undefined {
+    const rhs = context.stack.readU32();
+    const lhs = context.stack.readU32();
+    context.stack.writeI32(lhs >= rhs ? 1 : 0);
+    return this.next;
+  }
+}
+
+class BlockInstruction extends Instruction {
+  #instructions: InstructionSeq;
+
+  constructor(node: BlockInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#instructions = new InstructionSeq(node.instrs.instrs, this);
+  }
+
+  invoke(context: Context): Instruction | undefined {
+    return this.#instructions.top;
+  }
+
+  // 分岐命令の分岐先に指定された場合の処理
+  branchIn(): Instruction | undefined {
+    return this.next;
+  }
+}
+
+class LoopInstruction extends Instruction {
+  #instructions: InstructionSeq;
+
+  constructor(node: LoopInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#instructions = new InstructionSeq(node.instrs.instrs, this);
+  }
+
+  invoke(context: Context): Instruction | undefined {
+    return this.#instructions.top;
+  }
+
+  // 分岐命令の分岐先に指定された場合の処理
+  branchIn(): Instruction | undefined {
+    return this.#instructions.top;
+  }
+}
+
+class IfInstruction extends Instruction {
+  #thenInstructions: InstructionSeq;
+  #elseInstructions: InstructionSeq;
+
+  constructor(node: IfInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#thenInstructions = new InstructionSeq(node.thenInstrs.instrs, this);
+    this.#elseInstructions = new InstructionSeq(node.elseInstrs?.instrs, this);
+  }
+
+  invoke(context: Context): Instruction | undefined {
+    const cond = context.stack.readI32();
+    if (cond !== 0) {
+      return this.#thenInstructions;
+    } else {
+      return this.#elseInstructions;
+    }
+  }
+
+  // 分岐命令の分岐先に指定された場合の処理
+  branchIn(): Instruction | undefined {
+    return this.next;
+  }
+}
+
+class BrInstruction extends Instruction {
+  #labelIdx: number;
+
+  constructor(node: BrInstrNode, parent?: Instruction) {
+    super(parent);
+    this.#labelIdx = node.labelIdx;
+  }
+
+  // 入れ子になっているブロックの一番内側のブロックを 0 番目として、br命令のオペランド分だけ外側のブロックに分岐します
+  invoke(context: Context): Instruction | undefined {
+    let label = 0;
+    let parent = this.parent;
+    while (parent) {
+      if (
+        parent instanceof IfInstruction ||
+        parent instanceof BlockInstruction ||
+        parent instanceof LoopInstruction
+      ) {
+        if (label === this.#labelIdx) {
+          return parent.branchIn();
+        }
+        label++;
+      }
+      parent = parent.parent;
+    }
+    throw new Error(`branch error: ${this.#labelIdx} ${label}`);
+  }
+}
+
+// cond が真なら brするだけ
+class BrIfInstruction extends BrInstruction {
+  constructor(node: BrIfInstrNode, parent?: Instruction) {
+    super(node, parent);
+  }
+
+  invoke(context: Context): Instruction | undefined {
+    const cond = context.stack.readI32();
+    if (cond === 0) {
+      return this.next;
+    }
+
+    return super.invoke(context);
   }
 }

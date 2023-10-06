@@ -21,3 +21,12 @@ Deno.test('invoke add.wasm', async () => {
   assertEquals(1, instance.exports.add(2, -1));
   assertEquals(100, instance.exports.add(200, -100));
 });
+
+Deno.test('invoke loop.wasm', async () => {
+  const code = await Deno.readFile('data/loop.wasm');
+  const wasmBuffer = new WasmBuffer(code);
+  const wasmModule = new WasmModule();
+  wasmModule.load(wasmBuffer);
+  const instance = wasmModule.instantiate();
+  assertEquals(300, instance.exports.loop());
+});

@@ -16,6 +16,7 @@ const Op = {
   I32Eqz: 0x45,
   I32LtS: 0x48,
   I32GeS: 0x4e,
+  I32GeU: 0x4f,
   I32Add: 0x6a,
   I32RemS: 0x6f,
   End: 0x0b,
@@ -347,7 +348,10 @@ export class InstrNode {
         return new I32LtSInstrNode(opcode);
       }
       case Op.I32GeS: {
-        return new I32LtSInstrNode(opcode);
+        return new I32GeSInstrNode(opcode);
+      }
+      case Op.I32GeU: {
+        return new I32GeUInstrNode(opcode);
       }
       case Op.I32RemS: {
         return new I32RemSInstrNode(opcode);
@@ -470,6 +474,8 @@ export class I32EqzInstrNode extends InstrNode {
 export class I32LtSInstrNode extends InstrNode {
 }
 export class I32GeSInstrNode extends InstrNode {
+}
+export class I32GeUInstrNode extends InstrNode {
 }
 export class I32RemSInstrNode extends InstrNode {
 }
