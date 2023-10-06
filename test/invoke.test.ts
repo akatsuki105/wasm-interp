@@ -40,3 +40,13 @@ Deno.test('invoke call.wasm', async () => {
   assertEquals(52, instance.exports.add42(10));
   assertEquals(32, instance.exports.add42(-10));
 });
+
+Deno.test('invoke gcd.wasm', async () => {
+  const code = await Deno.readFile('data/gcd.wasm');
+  const wasmBuffer = new WasmBuffer(code);
+  const wasmModule = new WasmModule();
+  wasmModule.load(wasmBuffer);
+  const instance = wasmModule.instantiate();
+  assertEquals(6, instance.exports.gcd(42, 12));
+  assertEquals(14, instance.exports.gcd(42, 28));
+});
